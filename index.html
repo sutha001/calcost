@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cal Cost &amp; Profit — ระบบคำนวณต้นทุนและกำไร</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --border: #e0e2e7;
+    --text: #1c1f26;
+    --text-dim: #6b7280;
+    --accent: #3457d5;
+    --accent-hover: #2a45ad;
+    --accent-soft: #e9edfc;
+    --total-bg: #eef3ff;
+    --danger: #b3261e;
+    --danger-soft: #fdecea;
+    --shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a;
+      --card: #1c1f26;
+      --border: #2c313a;
+      --text: #e9eaee;
+      --text-dim: #9aa0ab;
+      --accent: #6d87ff;
+      --accent-hover: #8298ff;
+      --accent-soft: #232a45;
+      --total-bg: #1f2740;
+      --danger: #ff8983;
+      --danger-soft: #3a2323;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 1px 3px rgba(0,0,0,.5);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans Thai', 'Leelawadee UI', 'Tahoma', 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 24px 16px 64px; }
+  .wrap { max-width: 820px; margin: 0 auto; }
+
+  header h1 { font-size: 1.4rem; margin: 0 0 2px; }
+  header p.sub { margin: 0; color: var(--text-dim); font-size: .9rem; }
+
+  .notice {
+    margin: 16px 0 20px;
+    padding: 10px 14px;
+    background: var(--danger-soft);
+    border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+    color: var(--danger);
+    border-radius: 8px;
+    font-size: .85rem;
+    line-height: 1.5;
+  }
+
+  nav.tabs {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  nav.tabs button {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    padding: 10px 14px;
+    font-size: .88rem;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  nav.tabs button:hover { color: var(--text); }
+  nav.tabs button.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    font-weight: 600;
+  }
+
+  section.panel { display: none; }
+  section.panel.active { display: block; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 20px;
+    margin-bottom: 18px;
+  }
+  .card h2 { font-size: 1.02rem; margin: 0 0 14px; }
+  .card p.hint { color: var(--text-dim); font-size: .82rem; margin: -8px 0 14px; line-height: 1.5; }
+
+  .field-grid {
+    display: grid;
+    grid-template-columns: minmax(0,1fr);
+    gap: 12px;
+  }
+  @media (min-width: 560px) {
+    .field-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+  }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: .82rem; color: var(--text-dim); }
+  .field input {
+    font-family: inherit;
+    font-size: .95rem;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+  }
+  .field input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  .actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  button.btn {
+    font-family: inherit;
+    font-size: .9rem;
+    padding: 9px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: #fff;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  button.btn:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  button.btn.secondary {
+    background: transparent;
+    color: var(--accent);
+  }
+  button.btn.secondary:hover { background: var(--accent-soft); }
+
+  .status { margin-top: 10px; font-size: .85rem; color: var(--accent); min-height: 1.2em; }
+
+  table.result {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .92rem;
+    overflow: hidden;
+    border-radius: 8px;
+  }
+  table.result th, table.result td {
+    text-align: left;
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  table.result th {
+    color: var(--text-dim);
+    font-weight: 600;
+    font-size: .8rem;
+  }
+  table.result td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.result tr.total td { font-weight: 700; background: var(--total-bg); }
+  table.result tr:last-child td { border-bottom: none; }
+
+  .empty { color: var(--text-dim); font-size: .88rem; padding: 8px 2px; }
+
+  footer { text-align: center; color: var(--text-dim); font-size: .78rem; margin-top: 30px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Cal Cost &amp; Profit</h1>
+    <p class="sub">ระบบคำนวณต้นทุนและกำไร — งานสติกเกอร์/สปอต (Epson L1300 / Cameo 4)</p>
+  </header>
+
+  <div class="notice">
+    เวอร์ชันเว็บนี้ยังไม่มีการบันทึกข้อมูลใด ๆ ทั้งการตั้งค่าต้นทุนและผลคำนวณจะอยู่ในหน่วยความจำของหน้านี้เท่านั้น
+    และจะหายไปเมื่อรีเฟรชหรือปิดหน้าเว็บ
+  </div>
+
+  <nav class="tabs">
+    <button data-tab="settings" class="active">ตั้งค่าต้นทุน</button>
+    <button data-tab="general">คำนวณต้นทุน</button>
+    <button data-tab="rectangle">สี่เหลี่ยม</button>
+    <button data-tab="circle">วงกลม</button>
+    <button data-tab="examples">ราคาตัวอย่าง</button>
+  </nav>
+
+  <!-- ตั้งค่าต้นทุน -->
+  <section class="panel active" id="panel-settings">
+    <div class="card">
+      <h2>ตั้งค่าต้นทุนขนาด A4</h2>
+      <p class="hint">ค่าเริ่มต้นตรงกับชีต “ตั้งค่าต้นทุนขนาดA4” ในไฟล์ Excel ณ วันที่ตั้งค่า — แก้ไขแล้วกด “ใช้ค่านี้ในการคำนวณ” เพื่อให้แท็บคำนวณอื่นใช้ค่าที่แก้ ค่านี้จะไม่ถูกบันทึกถาวร</p>
+      <div class="field-grid cols-2" id="settings-fields"></div>
+      <div class="actions">
+        <button class="btn" id="settings-apply">ใช้ค่านี้ในการคำนวณ</button>
+        <button class="btn secondary" id="settings-reset">รีเซ็ตเป็นค่าเริ่มต้น</button>
+      </div>
+      <div class="status" id="settings-status"></div>
+    </div>
+  </section>
+
+  <!-- คำนวณต้นทุน (ทั่วไป) -->
+  <section class="panel" id="panel-general">
+    <div class="card">
+      <h2>คำนวณต้นทุน (ชิ้นเดียว)</h2>
+      <p class="hint">พื้นที่ = กว้าง × สูง (ซม.)</p>
+      <div class="field-grid cols-2">
+        <div class="field"><label>ชื่อขนาดงาน</label><input type="text" id="general-label" placeholder="เช่น A5"></div>
+        <div class="field"><label>กำไร (%)</label><input type="number" id="general-profit" value="30" step="0.01"></div>
+        <div class="field"><label>กว้าง (ซม.)</label><input type="number" id="general-width" step="0.01"></div>
+        <div class="field"><label>สูง (ซม.)</label><input type="number" id="general-height" step="0.01"></div>
+      </div>
+      <div class="actions"><button class="btn" id="general-calc">คำนวณ</button></div>
+    </div>
+    <div class="card">
+      <h2>ผลคำนวณ</h2>
+      <div id="general-result"><p class="empty">ยังไม่ได้คำนวณ</p></div>
+    </div>
+  </section>
+
+  <!-- คำนวณต้นทุนสี่เหลี่ยม -->
+  <section class="panel" id="panel-rectangle">
+    <div class="card">
+      <h2>คำนวณต้นทุนสี่เหลี่ยม</h2>
+      <p class="hint">พื้นที่ = กว้าง × สูง (ซม.) × จำนวน</p>
+      <div class="field-grid cols-2">
+        <div class="field"><label>ชื่อขนาดงาน</label><input type="text" id="rect-label" placeholder="เช่น A4"></div>
+        <div class="field"><label>จำนวน</label><input type="number" id="rect-qty" value="1" step="1" min="0"></div>
+        <div class="field"><label>กว้าง (ซม.)</label><input type="number" id="rect-width" step="0.01"></div>
+        <div class="field"><label>สูง (ซม.)</label><input type="number" id="rect-height" step="0.01"></div>
+        <div class="field"><label>กำไร (%)</label><input type="number" id="rect-profit" value="30" step="0.01"></div>
+      </div>
+      <div class="actions"><button class="btn" id="rect-calc">คำนวณ</button></div>
+    </div>
+    <div class="card">
+      <h2>ผลคำนวณ</h2>
+      <div id="rect-result"><p class="empty">ยังไม่ได้คำนวณ</p></div>
+    </div>
+  </section>
+
+  <!-- คำนวณต้นทุนวงกลม -->
+  <section class="panel" id="panel-circle">
+    <div class="card">
+      <h2>คำนวณต้นทุนวงกลม</h2>
+      <p class="hint">ช่อง “รัศมี (ซม.)” ใช้ค่าเดียวกับต้นฉบับ Excel — สูตรจริงหารสองก่อนยกกำลังสอง กล่าวคือค่าที่กรอกทำหน้าที่เป็น<strong>เส้นผ่านศูนย์กลาง</strong> ไม่ใช่รัศมีตามชื่อช่อง คงพฤติกรรมนี้ไว้ตามต้นฉบับ</p>
+      <div class="field-grid cols-2">
+        <div class="field"><label>ชื่อขนาดงาน</label><input type="text" id="circle-label" placeholder="เช่น A4"></div>
+        <div class="field"><label>รัศมี (ซม.)</label><input type="number" id="circle-diameter" step="0.01"></div>
+        <div class="field"><label>จำนวน (ดวง)</label><input type="number" id="circle-qty" value="1" step="1" min="0"></div>
+        <div class="field"><label>กำไร (%)</label><input type="number" id="circle-profit" value="30" step="0.01"></div>
+      </div>
+      <div class="actions"><button class="btn" id="circle-calc">คำนวณ</button></div>
+    </div>
+    <div class="card">
+      <h2>ผลคำนวณ</h2>
+      <div id="circle-result"><p class="empty">ยังไม่ได้คำนวณ</p></div>
+    </div>
+  </section>
+
+  <!-- ราคาตัวอย่าง -->
+  <section class="panel" id="panel-examples">
+    <div class="card">
+      <h2>ราคาตัวอย่างที่อัตรากำไรต่าง ๆ</h2>
+      <p class="hint">กรอกต้นทุนรวม (บาท) เพื่อดูราคาขายที่กำไร 10 / 20 / 30 / 40 / 50%</p>
+      <div class="field-grid">
+        <div class="field"><label>ต้นทุนรวม (บาท)</label><input type="number" id="examples-cost" step="0.0001" min="0"></div>
+      </div>
+      <div class="actions"><button class="btn" id="examples-calc">แสดงราคาตัวอย่าง</button></div>
+    </div>
+    <div class="card">
+      <h2>ผลลัพธ์</h2>
+      <div id="examples-result"><p class="empty">ยังไม่ได้คำนวณ</p></div>
+    </div>
+  </section>
+
+  <footer>Cal Cost &amp; Profit — เวอร์ชันเว็บ (ไม่มีการบันทึกข้อมูล)</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---- ค่าเริ่มต้น ตรงกับชีต 'ตั้งค่าต้นทุนขนาดA4' ----
+  const DEFAULT_SETTINGS = {
+    paper_price_per_pack: 1100,
+    sheets_per_pack: 100,
+    ink_price_per_a4: 2.8,
+    coating_price_per_a4: 0,
+    machine_dep_per_a4: 1,
+    electricity_per_a4: 0.5,
+    labor_per_piece: 15,
+    waste_percent: 5,
+    other_per_piece: 3,
+    a4_area_sqm: 0.06237,
+  };
+
+  const SETTINGS_FIELDS = [
+    ["paper_price_per_pack", "ราคากระดาษต่อแพ็ค (บาท)"],
+    ["sheets_per_pack", "จำนวนแผ่นต่อแพ็ค"],
+    ["ink_price_per_a4", "ราคาหมึกต่อ A4 (บาท)"],
+    ["coating_price_per_a4", "ค่าเคลือบต่อ A4 (บาท)"],
+    ["machine_dep_per_a4", "ค่าเสื่อมเครื่องต่อ A4 (บาท)"],
+    ["electricity_per_a4", "ค่าไฟต่อ A4 (บาท)"],
+    ["labor_per_piece", "ค่าแรงต่อชิ้น (บาท)"],
+    ["waste_percent", "Waste (%)"],
+    ["other_per_piece", "ค่าใช้จ่ายอื่นต่อชิ้น (บาท)"],
+    ["a4_area_sqm", "ขนาด A4 (ตร.ม.)"],
+  ];
+
+  const BREAKDOWN_LABELS = [
+    ["area_sqm", "พื้นที่ (ตร.ม.)"],
+    ["paper_cost", "ราคากระดาษ"],
+    ["ink_cost", "หมึก"],
+    ["coating_cost", "เคลือบ"],
+    ["machine_cost", "ค่าเครื่อง"],
+    ["electricity_cost", "ค่าไฟ"],
+    ["labor_cost", "ค่าแรง"],
+    ["waste_cost", "Waste"],
+    ["other_cost", "อื่นๆ"],
+    ["total_cost", "ต้นทุนรวม"],
+    ["profit_percent", "กำไร %"],
+    ["selling_price", "ราคาขาย"],
+  ];
+
+  let settings = { ...DEFAULT_SETTINGS };
+
+  // ---- Cost model (mirrors app/costing.py exactly) ----
+  function breakdownFromArea(areaSqm, s, profitPercent) {
+    const paperCost = areaSqm * ((s.paper_price_per_pack / s.sheets_per_pack) / s.a4_area_sqm);
+    const inkCost = s.ink_price_per_a4 * areaSqm / s.a4_area_sqm;
+    const coatingCost = s.coating_price_per_a4 * areaSqm / s.a4_area_sqm;
+    const machineCost = s.machine_dep_per_a4;
+    const electricityCost = s.electricity_per_a4;
+    const laborCost = s.labor_per_piece;
+
+    const subtotal = paperCost + inkCost + coatingCost + machineCost + electricityCost + laborCost;
+    const wasteCost = subtotal * s.waste_percent / 100;
+    const otherCost = s.other_per_piece;
+
+    const totalCost = subtotal + wasteCost + otherCost;
+    const sellingPrice = totalCost * (1 + profitPercent / 100);
+
+    return {
+      area_sqm: areaSqm,
+      paper_cost: paperCost,
+      ink_cost: inkCost,
+      coating_cost: coatingCost,
+      machine_cost: machineCost,
+      electricity_cost: electricityCost,
+      labor_cost: laborCost,
+      waste_cost: wasteCost,
+      other_cost: otherCost,
+      total_cost: totalCost,
+      profit_percent: profitPercent,
+      selling_price: sellingPrice,
+    };
+  }
+
+  function calcGeneral(widthCm, heightCm, profitPercent, s) {
+    const areaSqm = (widthCm * heightCm) / 10000;
+    return breakdownFromArea(areaSqm, s, profitPercent);
+  }
+
+  function calcRectangle(widthCm, heightCm, quantity, profitPercent, s) {
+    const areaSqm = ((widthCm * heightCm) / 10000) * quantity;
+    return breakdownFromArea(areaSqm, s, profitPercent);
+  }
+
+  function calcCircle(diameterCm, quantity, profitPercent, s) {
+    // ใช้ 3.1416 ตรงตามสูตรต้นฉบับใน Excel (ไม่ใช้ Math.PI)
+    const areaSqm = ((3.1416 * Math.pow(diameterCm / 2, 2)) / 10000) * quantity;
+    return breakdownFromArea(areaSqm, s, profitPercent);
+  }
+
+  function profitMarginTable(totalCost, margins) {
+    margins = margins || [10, 20, 30, 40, 50];
+    return margins.map((m) => ({ margin: m, sellingPrice: totalCost * (1 + m / 100) }));
+  }
+
+  // ---- helpers ----
+  function num(id) {
+    const v = parseFloat(document.getElementById(id).value);
+    return isNaN(v) ? 0 : v;
+  }
+
+  function renderBreakdownTable(container, breakdown) {
+    let rows = "";
+    for (const [key, label] of BREAKDOWN_LABELS) {
+      const value = breakdown[key];
+      const isTotalRow = key === "total_cost" || key === "selling_price";
+      rows += `<tr${isTotalRow ? ' class="total"' : ""}><td>${label}</td><td class="num">${value.toFixed(4)}</td></tr>`;
+    }
+    container.innerHTML = `<table class="result"><thead><tr><th>รายการ</th><th style="text-align:right">มูลค่า (บาท)</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+
+  // ---- settings tab ----
+  const settingsFieldsEl = document.getElementById("settings-fields");
+  const settingsInputs = {};
+
+  function buildSettingsForm() {
+    settingsFieldsEl.innerHTML = "";
+    for (const [field, label] of SETTINGS_FIELDS) {
+      const wrap = document.createElement("div");
+      wrap.className = "field";
+      const lbl = document.createElement("label");
+      lbl.textContent = label;
+      const input = document.createElement("input");
+      input.type = "number";
+      input.step = "any";
+      input.value = settings[field];
+      input.id = "settings-" + field;
+      wrap.appendChild(lbl);
+      wrap.appendChild(input);
+      settingsFieldsEl.appendChild(wrap);
+      settingsInputs[field] = input;
+    }
+  }
+  buildSettingsForm();
+
+  document.getElementById("settings-apply").addEventListener("click", () => {
+    const next = {};
+    for (const [field] of SETTINGS_FIELDS) {
+      const v = parseFloat(settingsInputs[field].value);
+      next[field] = isNaN(v) ? 0 : v;
+    }
+    settings = next;
+    document.getElementById("settings-status").textContent = "ใช้ค่านี้ในการคำนวณแล้ว (ยังไม่บันทึกถาวร)";
+  });
+
+  document.getElementById("settings-reset").addEventListener("click", () => {
+    settings = { ...DEFAULT_SETTINGS };
+    buildSettingsForm();
+    document.getElementById("settings-status").textContent = "รีเซ็ตเป็นค่าเริ่มต้นแล้ว";
+  });
+
+  // ---- general tab ----
+  document.getElementById("general-calc").addEventListener("click", () => {
+    const breakdown = calcGeneral(num("general-width"), num("general-height"), num("general-profit"), settings);
+    renderBreakdownTable(document.getElementById("general-result"), breakdown);
+  });
+
+  // ---- rectangle tab ----
+  document.getElementById("rect-calc").addEventListener("click", () => {
+    const breakdown = calcRectangle(num("rect-width"), num("rect-height"), num("rect-qty"), num("rect-profit"), settings);
+    renderBreakdownTable(document.getElementById("rect-result"), breakdown);
+  });
+
+  // ---- circle tab ----
+  document.getElementById("circle-calc").addEventListener("click", () => {
+    const breakdown = calcCircle(num("circle-diameter"), num("circle-qty"), num("circle-profit"), settings);
+    renderBreakdownTable(document.getElementById("circle-result"), breakdown);
+  });
+
+  // ---- price examples tab ----
+  document.getElementById("examples-calc").addEventListener("click", () => {
+    const rows = profitMarginTable(num("examples-cost"));
+    let body = "";
+    for (const r of rows) {
+      body += `<tr><td>${r.margin.toFixed(0)}</td><td class="num">${r.sellingPrice.toFixed(4)}</td></tr>`;
+    }
+    document.getElementById("examples-result").innerHTML =
+      `<table class="result"><thead><tr><th>กำไร %</th><th style="text-align:right">ราคาขาย</th></tr></thead><tbody>${body}</tbody></table>`;
+  });
+
+  // ---- tabs ----
+  const tabButtons = document.querySelectorAll("nav.tabs button");
+  tabButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      tabButtons.forEach((b) => b.classList.remove("active"));
+      document.querySelectorAll("section.panel").forEach((p) => p.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("panel-" + btn.dataset.tab).classList.add("active");
+    });
+  });
+})();
+</script>
+</body>
+</html>
