@@ -301,6 +301,7 @@
     waste_percent: 5,
     other_per_piece: 3,
     a4_area_sqm: 0.06237,
+    vat_percent: 7,
   };
 
   const SETTINGS_FIELDS = [
@@ -314,6 +315,7 @@
     ["waste_percent", "Waste (%)"],
     ["other_per_piece", "ค่าใช้จ่ายอื่นต่อชิ้น (บาท)"],
     ["a4_area_sqm", "ขนาด A4 (ตร.ม.)"],
+    ["vat_percent", "VAT (%)"],
   ];
 
   const BREAKDOWN_LABELS = [
@@ -328,6 +330,7 @@
     ["other_cost", "อื่นๆ"],
     ["total_cost", "ต้นทุนรวม"],
     ["profit_percent", "กำไร %"],
+    ["vat_amount", "vat"],
     ["selling_price", "ราคาขาย"],
   ];
 
@@ -347,7 +350,9 @@
     const otherCost = s.other_per_piece;
 
     const totalCost = subtotal + wasteCost + otherCost;
-    const sellingPrice = totalCost * (1 + profitPercent / 100);
+    const priceBeforeVat = totalCost * (1 + profitPercent / 100);
+    const vatAmount = priceBeforeVat * s.vat_percent / 100;
+    const sellingPrice = priceBeforeVat + vatAmount;
 
     return {
       area_sqm: areaSqm,
@@ -361,6 +366,7 @@
       other_cost: otherCost,
       total_cost: totalCost,
       profit_percent: profitPercent,
+      vat_amount: vatAmount,
       selling_price: sellingPrice,
     };
   }
